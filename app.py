@@ -1,44 +1,32 @@
-#!/usr/bin/env python3
-"""
-Quick Draw Classifier Web Interface
-----------------------------------
-A Flask web application that provides a drawing interface for the Quick Draw classifier.
-Users can draw sketches that are sent to the trained model for classification.
-"""
-
 import os
 import json
+import random
 import base64
 import numpy as np
 from io import BytesIO
 from PIL import Image
 import tensorflow as tf
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 
-# Initialize Flask app
-app = Flask(__name__)
+app = Flask(__name__, 
+            static_url_path='/static', 
+            static_folder='static',
+            template_folder='templates')
 
 # Global variables to store model and class names
 model = None
 class_names = []
+current_sessions = {} 
 
 def load_model_and_classes():
-    """
-    Load the trained model and class names from files.
-    
-    Returns:
-        tuple: (model, class_names)
-    """
     global model, class_names
     
     try:
-        # Load the model
         model_path = os.path.join("models", "quick_draw_model")
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model not found at {model_path}")
         model = tf.keras.models.load_model(model_path)
         
-        # Load class names
         class_file = os.path.join("data", "selected_classes.json")
         if not os.path.exists(class_file):
             raise FileNotFoundError(f"Class names file not found at {class_file}")
@@ -54,37 +42,16 @@ def load_model_and_classes():
 
 
 def preprocess_image(image_data):
-    """
-    Preprocess the image data to match the format expected by the model.
-    
-    Args:
-        image_data (str): Base64 encoded image data
-        
-    Returns:
-        numpy.ndarray: Preprocessed image as a numpy array
-    """
     try:
-        # Remove the data URL prefix
         if "base64," in image_data:
             image_data = image_data.split("base64,")[1]
         
-        # Decode base64 image
         image_bytes = base64.b64decode(image_data)
         image = Image.open(BytesIO(image_bytes))
-        
-        # Convert to grayscale
         image = image.convert("L")
-        
-        # Resize to 28x28
         image = image.resize((28, 28))
-        
-        # Invert colors (black background to white background)
         image = Image.fromarray(255 - np.array(image))
-        
-        # Convert to numpy array and normalize
         img_array = np.array(image).astype("float32") / 255.0
-        
-        # Reshape for model input (add batch and channel dimensions)
         img_array = img_array.reshape(1, 28, 28, 1)
         
         return img_array
@@ -95,15 +62,6 @@ def preprocess_image(image_data):
 
 
 def get_predictions(img_array):
-    """
-    Get predictions from the model for the given image.
-    
-    Args:
-        img_array (numpy.ndarray): Preprocessed image array
-        
-    Returns:
-        list: List of (class_name, probability) tuples sorted by probability
-    """
     try:
         if model is None:
             raise ValueError("Model not loaded")
@@ -130,49 +88,34 @@ def get_predictions(img_array):
 
 @app.route('/')
 def index():
-    """Serve the main page with the drawing interface."""
     return render_template('index.html')
 
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    """
-    Endpoint to receive drawing data and return predictions.
-    
-    Expects JSON with:
-        - image_data: Base64 encoded image data
-        
-    Returns:
-        JSON with:
-        - success: Boolean indicating success
-        - predictions: List of prediction results
-        - error: Error message if any
-    """
+@app.route('/game')
+def game():
+    return render_template('game.html')
+
+
+@app.route('/get_random_class', methods=['GET'])
+def get_random_class():
     try:
-        # Get image data from request
-        data = request.get_json()
-        if not data or 'image_data' not in data:
+        if not class_names:
             return jsonify({
                 'success': False,
-                'error': 'No image data provided'
-            }), 400
+                'error': 'Class names not loaded'
+            }), 500
         
-        image_data = data['image_data']
-        
-        # Preprocess image
-        img_array = preprocess_image(image_data)
-        if img_array is None:
-            return jsonify({
-                'success': False,
-                'error': 'Error preprocessing image'
-            }), 400
-        
-        # Get predictions
-        predictions = get_predictions(img_array)
+        target_class = random.choice(class_names)
+        session_id = str(random.randint(10000, 99999))
+        current_sessions[session_id] = {
+            'target_class': target_class,
+            'timestamp': import_time()
+        }
         
         return jsonify({
             'success': True,
-            'predictions': predictions
+            'class_name': target_class,
+            'session_id': session_id
         })
     
     except Exception as e:
@@ -182,9 +125,80 @@ def predict():
         }), 500
 
 
+@app.route('/submit_drawing', methods=['POST'])
+def submit_drawing():
+    try:
+        data = request.get_json()
+        if not data or 'image_data' not in data or 'session_id' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing image data or session ID'
+            }), 400
+        
+        image_data = data['image_data']
+        session_id = data['session_id']
+        
+        if session_id not in current_sessions:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid or expired session ID'
+            }), 400
+        
+        target_class = current_sessions[session_id]['target_class']
+        
+        clean_old_sessions()
+        
+        img_array = preprocess_image(image_data)
+        if img_array is None:
+            return jsonify({
+                'success': False,
+                'error': 'Error preprocessing image'
+            }), 400
+        
+        predictions = get_predictions(img_array)
+        if not predictions:
+            return jsonify({
+                'success': False,
+                'error': 'Error getting predictions'
+            }), 500
+        
+        top_prediction = predictions[0]['class']
+        is_match = (top_prediction == target_class)
+        
+        return jsonify({
+            'success': True,
+            'match': is_match,
+            'predictions': predictions,
+            'target_class': target_class
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+def clean_old_sessions():
+    import time
+    current_time = time.time()
+    expired_sessions = []
+    
+    for session_id, session_data in current_sessions.items():
+        if current_time - session_data.get('timestamp', 0) > 300:
+            expired_sessions.append(session_id)
+    
+    for session_id in expired_sessions:
+        del current_sessions[session_id]
+
+
+def import_time():
+    import time
+    return time.time()
+
+
 @app.before_first_request
 def initialize():
-    """Load model and class names before the first request."""
     global model, class_names
     model, class_names = load_model_and_classes()
     if model is None:
@@ -192,14 +206,13 @@ def initialize():
 
 
 if __name__ == '__main__':
-    # Make sure the template directory exists
     template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
-    if not os.path.exists(template_dir):
-        os.makedirs(template_dir)
-        print(f"Created template directory: {template_dir}")
+    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
     
-    # Load model and class names
+    for directory in [template_dir, static_dir]:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+            print(f"Created directory: {directory}")
+    
     model, class_names = load_model_and_classes()
-    
-    # Run the Flask app
     app.run(debug=True)
