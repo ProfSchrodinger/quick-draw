@@ -62,6 +62,10 @@ function setupCanvas() {
     ctx.lineJoin = 'round';
     ctx.strokeStyle = 'black';
     
+    // Fill canvas with white background initially
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     // Adjust canvas size for responsive design
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -264,7 +268,12 @@ function getEventPosition(e) {
  * Clear the canvas
  */
 function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Fill with white background first
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Reset to black for drawing
+    ctx.strokeStyle = 'black';
 }
 
 /**
@@ -284,7 +293,10 @@ function submitDrawing() {
     showScreen(loadingScreen);
     
     // Get canvas data as base64 image
-    const imageData = canvas.toDataURL('image/png');
+    const imageData = canvas.toDataURL('image/png', 1.0);
+    
+    // Debug - log image data length
+    console.log('Image data length:', imageData.length);
     
     // Send to server
     fetch('/submit_drawing', {
@@ -312,10 +324,22 @@ function submitDrawing() {
 
 /**
  * Check if the canvas is empty
+ * This method is improved to better detect actual drawings
  */
 function isCanvasEmpty() {
-    const pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    return !pixelData.some(pixel => pixel !== 0);
+    // Get image data from the canvas
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    // Check for non-white pixels
+    // In RGBA, white is [255,255,255,255]
+    for (let i = 0; i < data.length; i += 4) {
+        // If any pixel is not white (allowing for some anti-aliasing)
+        if (data[i] < 250 || data[i+1] < 250 || data[i+2] < 250) {
+            return false;
+        }
+    }
+    return true;
 }
 
 /**
