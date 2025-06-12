@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Draw Game</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="landing-container">
+        <header>
+            <div class="logo-container">
+                <div class="logo">Quick Draw!</div>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero">
+                <div class="hero-content">
+                    <h1>Can a Neural Network Recognize Your Drawings?</h1>
+                    <p class="tagline">Draw a sketch in 40 seconds and see if our AI can recognize it!</p>
+                    <a href="/game" class="play-button">Play Now</a>
+                </div>
+                <div class="hero-image">
+                    <img src="/static/images/quick-draw-hero.png" alt="Quick Draw Examples" onerror="this.src='/static/images/placeholder.png'; this.onerror=null;">
+                </div>
+            </section>
+
+            <section class="about">
+                <h2>About the Project</h2>
+                <div class="about-content">
+                    <div class="about-text">
+                        <p>This Quick Draw game is powered by a machine learning model trained on Google's Quick Draw dataset, which contains millions of drawings across hundreds of categories.</p>
+                        <p>Our model has been trained on 50 randomly selected categories from this dataset, achieving an impressive 87.7% accuracy in recognizing doodles.</p>
+                        <p>The challenge is simple: we'll give you a category, and you have 40 seconds to draw it. Then our AI will try to recognize what you've drawn!</p>
+                    </div>
+                    <div class="about-image">
+                        <img src="/static/images/neural-network.png" alt="Neural Network Visualization" onerror="this.src='/static/images/placeholder.png'; this.onerror=null;">
+                    </div>
+                </div>
+            </section>
+
+            <section class="how-to-play">
+                <h2>How to Play</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Get a Prompt</h3>
+                            <p>You'll be given one of 50 categories to draw</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Draw in 40 Seconds</h3>
+                            <p>Use your mouse or finger to sketch the object</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Submit Your Drawing</h3>
+                            <p>Let our AI try to recognize what you've drawn</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="examples">
+                <h2>Example Drawings</h2>
+                <div class="example-grid">
+                    <div class="example-item">
+                        <img src="/static/images/example-cat.png" alt="Cat Drawing Example" onerror="this.src='/static/images/placeholder.png'; this.onerror=null;">
+                        <p>Cat</p>
+                    </div>
+                    <div class="example-item">
+                        <img src="/static/images/example-bicycle.png" alt="Bicycle Drawing Example" onerror="this.src='/static/images/placeholder.png'; this.onerror=null;">
+                        <p>Bicycle</p>
+                    </div>
+                    <div class="example-item">
+                        <img src="/static/images/example-tree.png" alt="Tree Drawing Example" onerror="this.src='/static/images/placeholder.png'; this.onerror=null;">
+                        <p>Tree</p>
+                    </div>
+                    <div class="example-item">
+                        <img src="/static/images/example-house.png" alt="House Drawing Example" onerror="this.src='/static/images/placeholder.png'; this.onerror=null;">
+                        <p>House</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cta">
+                <h2>Ready to Challenge Our AI?</h2>
+                <a href="/game" class="play-button">Start Drawing</a>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by TensorFlow and the Quick Draw Dataset</p>
+            <p>Model accuracy: 87.7% on 50 classes</p>
+        </footer>
+    </div>
+</body>
+</html>
