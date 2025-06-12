@@ -22,10 +22,11 @@ def load_model_and_classes():
     global model, class_names
     
     try:
-        model_path = os.path.join("models", "quick_draw_model")
+        model_path = os.path.join("models", "quick_draw_model.h5")
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model not found at {model_path}")
         model = tf.keras.models.load_model(model_path)
+        
         
         class_file = os.path.join("data", "selected_classes.json")
         if not os.path.exists(class_file):
@@ -40,19 +41,55 @@ def load_model_and_classes():
         print(f"Error loading model or class names: {e}")
         return None, []
 
+model, class_names = load_model_and_classes()
+if model is None:
+    print("WARNING: Model could not be loaded. Predictions will not work.")
 
 def preprocess_image(image_data):
     try:
+        # Remove the data URL prefix
         if "base64," in image_data:
             image_data = image_data.split("base64,")[1]
         
+        # Decode base64 image
         image_bytes = base64.b64decode(image_data)
+        
+        # Open the image using PIL
         image = Image.open(BytesIO(image_bytes))
+        
+        # Convert to grayscale
         image = image.convert("L")
-        image = image.resize((28, 28))
-        image = Image.fromarray(255 - np.array(image))
-        img_array = np.array(image).astype("float32") / 255.0
+        
+        # Resize to 28x28
+        image = image.resize((28, 28), Image.LANCZOS)
+        
+        # Convert to numpy array
+        img_array = np.array(image)
+        
+        # Debug: print min and max values to see if we have actual drawing data
+        print(f"Image min: {img_array.min()}, max: {img_array.max()}")
+        
+        # In the Quick Draw dataset, drawings are black (0) on white (255) background
+        # But our canvas likely has white (255) drawings on black (0) background
+        # So we need to invert if the image appears to be white on black
+        if img_array.mean() < 128:  # If the average is dark, it's likely black background
+            img_array = 255 - img_array  # Invert
+        
+        # Normalize to [0, 1]
+        img_array = img_array.astype("float32") / 255.0
+        
+        # Make sure black strokes are represented by low values (0) and white background by high values (1)
+        # This matches the format used during training
+        img_array = 1.0 - img_array
+        
+        # Reshape for model input (add batch and channel dimensions)
         img_array = img_array.reshape(1, 28, 28, 1)
+        
+        # Debug: Save a sample image for inspection
+        if not os.path.exists('debug'):
+            os.makedirs('debug')
+        debug_img = Image.fromarray((img_array[0, :, :, 0] * 255).astype(np.uint8))
+        debug_img.save('debug/last_processed_image.png')
         
         return img_array
     
@@ -147,13 +184,15 @@ def submit_drawing():
         target_class = current_sessions[session_id]['target_class']
         
         clean_old_sessions()
-        
+    
         img_array = preprocess_image(image_data)
         if img_array is None:
             return jsonify({
                 'success': False,
                 'error': 'Error preprocessing image'
             }), 400
+        
+        print(img_array)
         
         predictions = get_predictions(img_array)
         if not predictions:
@@ -195,14 +234,7 @@ def clean_old_sessions():
 def import_time():
     import time
     return time.time()
-
-
-@app.before_first_request
-def initialize():
-    global model, class_names
-    model, class_names = load_model_and_classes()
-    if model is None:
-        print("WARNING: Model could not be loaded. Predictions will not work.")
+    
 
 
 if __name__ == '__main__':
@@ -213,6 +245,5 @@ if __name__ == '__main__':
         if not os.path.exists(directory):
             os.makedirs(directory)
             print(f"Created directory: {directory}")
-    
-    model, class_names = load_model_and_classes()
+            
     app.run(debug=True)
