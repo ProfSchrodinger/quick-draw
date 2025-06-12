@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Draw Game</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <div class="logo-container">
+                <div class="logo">Quick Draw!</div>
+            </div>
+            <a href="/" class="exit-button">Exit Game</a>
+        </header>
+
+        <main id="game-area">
+            <!-- Game States -->
+            <div id="prompt-screen" class="game-screen">
+                <h2>Draw a:</h2>
+                <div id="drawing-prompt" class="drawing-prompt">Loading...</div>
+                <div class="timer-container">
+                    <div class="timer-label">Time remaining:</div>
+                    <div id="timer" class="timer">40</div>
+                </div>
+                <div id="canvas-container">
+                    <canvas id="drawing-canvas" width="500" height="400"></canvas>
+                </div>
+                <div class="controls">
+                    <button id="clear-btn" class="button">Clear Canvas</button>
+                    <button id="submit-btn" class="button primary-button">Submit Drawing</button>
+                </div>
+            </div>
+
+            <div id="result-screen" class="game-screen hidden">
+                <h2 id="result-title">Results</h2>
+                <div id="result-message" class="result-message"></div>
+                
+                <div class="result-details">
+                    <div class="result-item">
+                        <h3>You were asked to draw:</h3>
+                        <div id="target-class" class="target-class"></div>
+                    </div>
+                    <div class="result-item">
+                        <h3>The AI recognized it as:</h3>
+                        <div id="recognized-class" class="recognized-class"></div>
+                    </div>
+                </div>
+
+                <div id="prediction-results" class="prediction-results">
+                    <h3>Top 5 Predictions:</h3>
+                    <div id="predictions-container"></div>
+                </div>
+                
+                <div class="result-controls">
+                    <button id="continue-btn" class="button primary-button">Continue</button>
+                    <a href="/" class="button">Exit to Home</a>
+                </div>
+            </div>
+
+            <div id="loading-screen" class="game-screen hidden">
+                <div class="spinner"></div>
+                <p>Analyzing your drawing...</p>
+            </div>
+
+            <div id="error-screen" class="game-screen hidden">
+                <h2>Oops! Something went wrong</h2>
+                <p id="error-message">An error occurred.</p>
+                <button id="retry-btn" class="button primary-button">Try Again</button>
+                <a href="/" class="button">Back to Home</a>
+            </div>
+        </main>
+
+        <footer>
+            <p>Draw with your mouse or finger • Keep it simple!</p>
+        </footer>
+    </div>
+
+    <!-- Game script must be loaded after the DOM elements -->
+    <script src="/static/game.js"></script>
+</body>
+</html>
