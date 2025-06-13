@@ -1,2 +1,10 @@
 # Ignore raw data files
 /data/raw/
+
+# debug foler
+/debug
+
+#checkpoiunts folder
+/.ipynb_checkpoints
+
+/__pycache__
