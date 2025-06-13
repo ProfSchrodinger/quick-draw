@@ -4,7 +4,9 @@ import random
 import base64
 import numpy as np
 from io import BytesIO
-from PIL import Image
+import cv2  
+from PIL import Image, ImageOps
+import tensorflow as tf
 import tensorflow as tf
 from flask import Flask, render_template, request, jsonify, send_from_directory
 
@@ -47,45 +49,22 @@ if model is None:
 
 def preprocess_image(image_data):
     try:
-        # Remove the data URL prefix
         if "base64," in image_data:
             image_data = image_data.split("base64,")[1]
-        
-        # Decode base64 image
         image_bytes = base64.b64decode(image_data)
-        
-        # Open the image using PIL
         image = Image.open(BytesIO(image_bytes))
-        
-        # Convert to grayscale
         image = image.convert("L")
-        
-        # Resize to 28x28
         image = image.resize((28, 28), Image.LANCZOS)
-        
-        # Convert to numpy array
         img_array = np.array(image)
         
-        # Debug: print min and max values to see if we have actual drawing data
         print(f"Image min: {img_array.min()}, max: {img_array.max()}")
-        
-        # In the Quick Draw dataset, drawings are black (0) on white (255) background
-        # But our canvas likely has white (255) drawings on black (0) background
-        # So we need to invert if the image appears to be white on black
-        if img_array.mean() < 128:  # If the average is dark, it's likely black background
-            img_array = 255 - img_array  # Invert
-        
-        # Normalize to [0, 1]
+        if img_array.mean() < 128:
+            img_array = 255 - img_array
+            
         img_array = img_array.astype("float32") / 255.0
-        
-        # Make sure black strokes are represented by low values (0) and white background by high values (1)
-        # This matches the format used during training
         img_array = 1.0 - img_array
-        
-        # Reshape for model input (add batch and channel dimensions)
         img_array = img_array.reshape(1, 28, 28, 1)
         
-        # Debug: Save a sample image for inspection
         if not os.path.exists('debug'):
             os.makedirs('debug')
         debug_img = Image.fromarray((img_array[0, :, :, 0] * 255).astype(np.uint8))
