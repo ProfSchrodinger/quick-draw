@@ -2,9 +2,9 @@
 /data/raw/
 
 # debug foler
-/debug
+/debug/
 
 #checkpoiunts folder
-/.ipynb_checkpoints
+/.ipynb_checkpoints/
 
-/__pycache__
+/__pycache__/
